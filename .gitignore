@@ -1,0 +1,21 @@
+# Ignore generated and cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore Python virtual environments
+venv/
+.env/
+
+# Ignore system files
+.DS_Store
+
+# Ignore image results
+results/
+enhanced_results/
+batch_results/
+streamlit_output/
+
+# Ignore large training datasets
+datasets/
