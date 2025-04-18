@@ -1,9 +1,36 @@
 name: finetune_security_cam
 model_type: RealESRGANModel
 scale: 4
-# Change to GPU if available
 num_gpu: 1
 manual_seed: 0
+gt_size: 256
+queue_size: 180
+
+# 1st degradation
+resize_prob: [0.2, 0.7, 0.1]
+resize_range: [0.15, 1.5]
+gaussian_noise_prob: 0.5
+gray_noise_prob: 0.4
+jpeg_prob: 0.5
+jpeg_range: [30, 95]
+poisson_scale_range: [0.05, 2.0]
+noise_range: [1, 30]
+
+# 2nd degradation
+second_blur_prob: 0.8
+resize_prob2: [0.3, 0.4, 0.3]
+resize_range2: [0.3, 1.2]
+gaussian_noise_prob2: 0.5
+gray_noise_prob2: 0.4
+jpeg_prob2: 0.5
+jpeg_range2: [30, 95]
+poisson_scale_range2: [0.05, 2.5]
+noise_range2: [1, 30]
+
+# GT sharpening config
+l1_gt_usm: True
+percep_gt_usm: True
+gan_gt_usm: False
 
 datasets:
   train:
@@ -13,7 +40,6 @@ datasets:
     meta_info: datasets/custom/train/meta_info.txt
     io_backend:
       type: disk
-
     blur_kernel_size: 21
     kernel_list: ['iso', 'aniso', 'generalized_iso', 'generalized_aniso', 'plateau_iso', 'plateau_aniso']
     kernel_prob: [0.45, 0.25, 0.12, 0.03, 0.12, 0.03]
@@ -21,7 +47,6 @@ datasets:
     blur_sigma: [0.2, 3]
     betag_range: [0.5, 4]
     betap_range: [1, 2]
-
     blur_kernel_size2: 21
     kernel_list2: ['iso', 'aniso', 'generalized_iso', 'generalized_aniso', 'plateau_iso', 'plateau_aniso']
     kernel_prob2: [0.45, 0.25, 0.12, 0.03, 0.12, 0.03]
@@ -29,17 +54,15 @@ datasets:
     blur_sigma2: [0.2, 1.5]
     betag_range2: [0.5, 4]
     betap_range2: [1, 2]
-
     final_sinc_prob: 0.8
-    gt_size: 256
-    use_hflip: true
-    use_rot: true
+    use_hflip: True
+    use_rot: True
     color_jitter_prob: 0.3
     color_jitter_shift: 20
-    queue_size: 180
     batch_size_per_gpu: 4
     num_worker_per_gpu: 2
-
+    phase: train
+    scale: 4
   val:
     name: SecurityCamVal
     type: PairedImageDataset
@@ -47,6 +70,8 @@ datasets:
     dataroot_lq: datasets/custom/val/lr
     io_backend:
       type: disk
+    phase: val
+    scale: 4
 
 network_g:
   type: RRDBNet
@@ -58,15 +83,15 @@ network_g:
   scale: 4
 
 network_d:
-  type: VGGDiscriminator128
+  type: VGGStyleDiscriminator
   num_in_ch: 3
   num_feat: 64
-  skip_connection: true
+  input_size: 256
 
 path:
   pretrain_network_g: Real-ESRGAN/weights/RealESRGAN_x4plus.pth
   param_key_g: params_ema
-  strict_load_g: false
+  strict_load_g: False
   resume_state: ~
 
 train:
@@ -81,20 +106,16 @@ train:
     lr: !!float 5e-5
     weight_decay: 0
     betas: [0.9, 0.99]
-
   scheduler:
     type: MultiStepLR
     milestones: [5000]
     gamma: 0.5
-
   total_iter: 10000
   warmup_iter: -1
-
   pixel_opt:
     type: L1Loss
     loss_weight: 1.0
     reduction: mean
-
   perceptual_opt:
     type: PerceptualLoss
     layer_weights:
@@ -104,39 +125,37 @@ train:
       'conv4_4': 1
       'conv5_4': 1
     vgg_type: vgg19
-    use_input_norm: true
+    use_input_norm: True
     perceptual_weight: 1.0
     style_weight: 0
-    range_norm: false
+    range_norm: False
     criterion: l1
-
   gan_opt:
     type: GANLoss
     gan_type: vanilla
     real_label_val: 1.0
     fake_label_val: 0.0
-    loss_weight: !!float 1e-1
-
+    loss_weight: 0.1
   net_d_iters: 1
   net_d_init_iters: 0
 
 val:
-  val_freq: !!float 1e3
-  save_img: true
+  val_freq: 1000
+  save_img: True
   metrics:
     psnr:
       type: calculate_psnr
       crop_border: 4
-      test_y_channel: false
+      test_y_channel: False
     ssim:
       type: calculate_ssim
       crop_border: 4
-      test_y_channel: false
+      test_y_channel: False
 
 logger:
   print_freq: 100
-  save_checkpoint_freq: !!float 1e3
-  use_tb_logger: false
+  save_checkpoint_freq: 1000
+  use_tb_logger: False
   wandb:
     project: ~
     resume_id: ~
