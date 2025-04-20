@@ -42,4 +42,4 @@ def create_dataset(input_folder, output_root="datasets/custom", val_split=0.1):
     print(f"Meta info written to {meta_info_path}")
 
 if __name__ == "__main__":
-    create_dataset("pret_images/cropped")  # Change this folder path
+    create_dataset("train_images")  # Change this folder path
