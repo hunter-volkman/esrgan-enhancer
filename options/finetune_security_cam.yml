@@ -155,7 +155,7 @@ val:
 logger:
   print_freq: 100
   save_checkpoint_freq: 1000
-  use_tb_logger: False
+  use_tb_logger: True
   wandb:
     project: ~
     resume_id: ~
